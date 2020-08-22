@@ -3,6 +3,42 @@ use std::io;
 
 use std::thread;
 
+#[derive(Debug)]
+enum Wait {
+    ForAll,
+    ForAny,
+}
+
+impl std::str::FromStr for Wait {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, <Self as std::str::FromStr>::Err> {
+        match s {
+            "for-all" | "all" => Ok(Wait::ForAll),
+            "for-any" | "any" => Ok(Wait::ForAny),
+            _ => { Err("cannot convert from value".into()) }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum OnError {
+    Interrupt,
+    Ignore,
+}
+
+impl std::str::FromStr for OnError {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, <Self as std::str::FromStr>::Err> {
+        match s {
+            "int" | "interrupt" | "break" | "stop" => Ok(OnError::Interrupt),
+            "ignore" => Ok(OnError::Ignore),
+            _ => { Err("cannot convert from value".into()) }
+        }
+    }
+}
+
 
 #[derive(Debug)]
 struct ProcFinished {
@@ -108,6 +144,12 @@ struct Opt {
     #[structopt(short, long)]
     debug: bool,
 
+    #[structopt(long)]
+    wait: Wait,
+
+    #[structopt(long = "on-error")]
+    on_error: OnError,
+
     #[structopt(parse(try_from_str))]
     args: Vec<String>,
 }
@@ -195,7 +237,7 @@ mod tests {
     #[should_panic]
     fn smoke_finished_failure() {
         let pb = ProcBuilder::new()
-            .command("asdasdh678gasd hello world")
+            .command("false")
             .wait()
             .shell("bash");
         let proc = pb.build().eval();
